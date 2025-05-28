@@ -9,6 +9,7 @@
 <body>
     <div class="chat-root">
         <div class="chat-panel" id="chat-panel">
+            <div class="system-message" id="system-message"></div>
             <div class="chat-info" id="chat-info">
                 <span id="you-info"></span> | <span id="stranger-info"></span>
             </div>
@@ -27,6 +28,9 @@
             <button class="action-btn" id="report-btn">Report</button>
         </div>
     </div>
+    <div class="chat-restart" id="chat-restart" style="display:none; text-align:center;">
+        <button class="big-btn" onclick="window.location.href='{{ url_for('connecting') }}'">Start New Chat</button>
+    </div>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script>
         var socket = io();
@@ -34,6 +38,12 @@
         var you = null;
         var stranger = null;
         var typingTimeout = null;
+        var chatActive = true;
+
+        function nowTime() {
+            let d = new Date();
+            return d.getHours() + ':' + d.getMinutes().toString().padStart(2, '0');
+        }
 
         socket.on('matched', function(data) {
             room = data.room;
@@ -42,23 +52,26 @@
             document.getElementById('you-info').innerText = 
                 `You: ${you.username} | Age: ${you.age} | ${you.gender}`;
             document.getElementById('stranger-info').innerText = 
-                `Stranger: ${stranger.username} | Age: ${stranger.age} | ${stranger.gender}`;
-            // Clear chat window and typing indicator on new match
-            document.getElementById('chat-window').innerHTML = "";
-            document.getElementById('typing-indicator').style.display = 'none';
+                `Stranger: Age: ${stranger.age} | ${stranger.gender}`;
+            // System match notification
+            let strangerName = stranger.username || "Stranger";
+            document.getElementById('system-message').innerHTML =
+              `<span class="match-notice">✅ <b>You are now talking with “${strangerName}”</b></span>`;
         });
 
-        function appendMessage(sender, msg) {
+        function appendMessage(sender, msg, username=null, time=null) {
             var win = document.getElementById('chat-window');
             var bubble = document.createElement('div');
             bubble.className = sender === 'You' ? 'bubble me' : 'bubble stranger';
-            bubble.innerText = msg;
+            let userLabel = username ? `<div class="bubble-username">${username}</div>` : '';
+            let timeLabel = time ? `<span class="bubble-time">${time}</span>` : '';
+            bubble.innerHTML = `${userLabel}${msg}${timeLabel}`;
             win.appendChild(bubble);
             win.scrollTop = win.scrollHeight;
         }
 
         socket.on('receive_message', function(data) {
-            appendMessage(data.sender, data.msg);
+            appendMessage(data.sender, data.msg, data.username, data.time);
             document.getElementById('typing-indicator').style.display = 'none';
         });
 
@@ -67,14 +80,16 @@
         };
         document.getElementById('msg-input').onkeydown = function(e) {
             if (e.key === 'Enter') sendMsg();
-            socket.emit('typing', {room: room});
+            if (chatActive && room) socket.emit('typing', {room: room});
         };
 
         function sendMsg() {
             var input = document.getElementById('msg-input');
             var msg = input.value.trim();
-            if (!msg) return;
+            if (!msg || !chatActive) return;
             socket.emit('send_message', {room: room, msg: msg});
+            // Locally show instantly
+            appendMessage('You', msg, you ? you.username : "You", nowTime());
             input.value = '';
         }
 
@@ -93,24 +108,34 @@
         };
         document.getElementById('end-btn').onclick = function() {
             socket.emit('end_chat', {room: room});
-            window.location.href = "{{ url_for('index') }}";
+            // Locally show disconnect notice
+            showDisconnected("You");
         };
         document.getElementById('report-btn').onclick = function() {
             alert('Thank you for reporting. The conversation has ended.');
             socket.emit('end_chat', {room: room});
-            window.location.href = "{{ url_for('index') }}";
+            showDisconnected("You");
         };
 
-        socket.on('chat_ended', function() {
-            alert('Stranger disconnected.');
-            window.location.href = "{{ url_for('index') }}";
+        function showDisconnected(name) {
+            // Red disconnect notice, disable chat
+            document.getElementById('system-message').innerHTML =
+                `<span class="disconnect-notice">❌ <b>${name} has disconnected.</b></span>`;
+            document.getElementById('msg-input').disabled = true;
+            document.getElementById('send-btn').disabled = true;
+            chatActive = false;
+            document.getElementById('chat-restart').style.display = 'block';
+        }
+
+        socket.on('chat_ended', function(data) {
+            let name = data?.username || "Stranger";
+            showDisconnected(name);
         });
 
         socket.on('go_to_connecting', function() {
             window.location.href = "{{ url_for('connecting') }}";
         });
 
-        // If page loads and no match yet, show info
         window.onload = function() {
             if (!room) {
                 document.getElementById('chat-info').innerText = 'Waiting for stranger...';
