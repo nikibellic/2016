@@ -42,7 +42,10 @@
             document.getElementById('you-info').innerText = 
                 `You: ${you.username} | Age: ${you.age} | ${you.gender}`;
             document.getElementById('stranger-info').innerText = 
-                `Stranger: Age: ${stranger.age} | ${stranger.gender}`;
+                `Stranger: ${stranger.username} | Age: ${stranger.age} | ${stranger.gender}`;
+            // Clear chat window and typing indicator on new match
+            document.getElementById('chat-window').innerHTML = "";
+            document.getElementById('typing-indicator').style.display = 'none';
         });
 
         function appendMessage(sender, msg) {
