@@ -111,6 +111,27 @@ h1 {
     margin-bottom: 10px;
     text-align: center;
 }
+.system-message {
+    text-align: center;
+    font-size: 1.1em;
+    margin-bottom: 8px;
+    font-weight: bold;
+}
+.match-notice {
+    background: #e6ffed;
+    color: #3aaa4a;
+    display: inline-block;
+    border-radius: 8px;
+    padding: 5px 12px;
+}
+.disconnect-notice {
+    color: #e32b2b;
+    font-weight: bold;
+    background: #ffecec;
+    display: inline-block;
+    border-radius: 8px;
+    padding: 5px 12px;
+}
 .chat-window {
     background: #f2f2f7;
     border-radius: 9px;
@@ -125,11 +146,12 @@ h1 {
 }
 .bubble {
     display: inline-block;
-    padding: 8px 14px;
+    padding: 8px 14px 5px 14px;
     border-radius: 16px;
     margin-bottom: 4px;
     max-width: 70%;
     word-break: break-word;
+    position: relative;
 }
 .bubble.me {
     align-self: flex-end;
@@ -140,6 +162,18 @@ h1 {
     align-self: flex-start;
     background: #e0e0ef;
     color: #333;
+}
+.bubble-username {
+    font-size: 0.85em;
+    color: #888;
+    margin-bottom: 2px;
+}
+.bubble-time {
+    float: right;
+    font-size: 0.8em;
+    color: #aaa;
+    margin-left: 8px;
+    vertical-align: middle;
 }
 .typing-indicator {
     margin: 7px 0 0 7px;
@@ -210,4 +244,8 @@ h1 {
     .chat-panel {
         padding: 8px 2vw 0 2vw;
     }
+}
+.chat-restart {
+    margin: 24px auto;
+    text-align: center;
 }
