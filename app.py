@@ -1,6 +1,6 @@
 import os
 import random
-from flask import Flask, render_template, session, request, redirect, url_for, jsonify
+from flask import Flask, render_template, session, request, redirect, url_for
 from flask_socketio import SocketIO, emit, join_room, leave_room, disconnect
 from flask_session import Session
 from uuid import uuid4
@@ -90,6 +90,7 @@ def find_partner(data):
         active_chats[room] = {'users': [user, stranger]}
         join_room(room, sid=user['sid'])
         join_room(room, sid=stranger_sid)
+        # Each client gets the real username of the other
         emit('matched', {
             'room': room,
             'you': {
@@ -98,11 +99,11 @@ def find_partner(data):
                 'age': user['age']
             },
             'stranger': {
-                'username': 'Stranger',
+                'username': stranger['username'],
                 'gender': stranger['gender'],
                 'age': stranger['age']
             }
-        }, room=room)
+        }, room=user['sid'])
         socketio.emit('matched', {
             'room': room,
             'you': {
@@ -111,13 +112,12 @@ def find_partner(data):
                 'age': stranger['age']
             },
             'stranger': {
-                'username': 'Stranger',
+                'username': user['username'],
                 'gender': user['gender'],
                 'age': user['age']
             }
-        }, room=room, include_self=False, to=stranger_sid)
+        }, room=stranger_sid)
     else:
-        # Wait for a match
         waiting_users.append(user)
 
 @socketio.on('send_message')
@@ -127,12 +127,16 @@ def handle_message(data):
     if not room or room not in active_chats:
         return
     user = session.get('user')
+    # Find which user sent the message, to set correct sender label
+    for chat_user in active_chats[room]['users']:
+        if chat_user['sid'] == request.sid:
+            sender_username = chat_user['username']
     emit('receive_message', {
         'sender': 'You',
         'msg': msg
     }, room=request.sid)
     emit('receive_message', {
-        'sender': 'Stranger',
+        'sender': sender_username,
         'msg': msg
     }, room=room, include_self=False, to=request.sid)
 
@@ -181,12 +185,6 @@ def handle_disconnect():
                 break
 
 if __name__ == '__main__':
-    # Find a random free port each time to avoid conflicts
-    import socket
-    import sys
-    port = None
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(('', 0))
-        port = s.getsockname()[1]
-    print(f" * Running on http://127.0.0.1:{port}")
-    socketio.run(app, host='127.0.0.1', port=port)
+    import os
+    port = int(os.environ.get("PORT", 10000))
+    socketio.run(app, host='0.0.0.0', port=port)
