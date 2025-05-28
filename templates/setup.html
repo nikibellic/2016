@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Anonymous Chat Setup</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+</head>
+<body>
+    <div class="setup-container">
+        <h1>Anonymous Chat</h1>
+        <form action="{{ url_for('connecting') }}" method="post" class="setup-form">
+            <label>Username (optional):</label>
+            <input type="text" name="username" placeholder="Stranger">
+
+            <label>Gender:</label>
+            <select name="gender">
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+                <option value="Prefer not to say">Prefer not to say</option>
+            </select>
+
+            <label>Looking to chat with:</label>
+            <select name="gender_pref">
+                <option value="Any">Any</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+            </select>
+
+            <label>Your Age:</label>
+            <input type="number" name="age" min="18" max="60" value="20" required>
+
+            <label>Match Age Range:</label>
+            <div class="range-slider">
+                <input type="range" name="age_min" min="18" max="60" value="18" id="minAge" oninput="updateAgeRange()">
+                <input type="range" name="age_max" min="18" max="60" value="30" id="maxAge" oninput="updateAgeRange()">
+                <span id="ageRange">18 - 30</span>
+            </div>
+
+            <button class="big-btn" type="submit">Start Chat</button>
+        </form>
+    </div>
+    <script>
+        function updateAgeRange() {
+            let min = document.getElementById('minAge').value;
+            let max = document.getElementById('maxAge').value;
+            if (parseInt(min) > parseInt(max)) {
+                [min, max] = [max, min];
+                document.getElementById('minAge').value = min;
+                document.getElementById('maxAge').value = max;
+            }
+            document.getElementById('ageRange').innerText = `${min} - ${max}`;
+        }
+        updateAgeRange();
+    </script>
+</body>
+</html>

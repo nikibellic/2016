@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Connecting...</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+</head>
+<body>
+    <div class="connecting-container">
+        <div class="searching-animation">
+            <span>Searching for a stranger</span>
+            <span class="dots"></span>
+        </div>
+        <div class="match-info">
+            <small>
+                Matching with users aged {{ age_min }}–{{ age_max }} looking for {{ gender_pref }}...
+            </small>
+        </div>
+        <button class="cancel-btn" onclick="cancelSearch()">Cancel & Go Back</button>
+    </div>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        var socket = io();
+
+        // Animate dots
+        let dots = document.querySelector('.dots');
+        let count = 0;
+        setInterval(() => {
+            count = (count + 1) % 4;
+            dots.innerText = '.'.repeat(count);
+        }, 400);
+
+        // Attempt to find a partner
+        socket.emit('find_partner', {});
+
+        socket.on('matched', function(data) {
+            window.location.href = "{{ url_for('chat') }}";
+        });
+
+        function cancelSearch() {
+            socket.emit('cancel_search');
+            window.location.href = "{{ url_for('index') }}";
+        }
+    </script>
+</body>
+</html>

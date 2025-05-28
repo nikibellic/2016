@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Chat</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+</head>
+<body>
+    <div class="chat-root">
+        <div class="chat-panel" id="chat-panel">
+            <div class="chat-info" id="chat-info">
+                <span id="you-info"></span> | <span id="stranger-info"></span>
+            </div>
+            <div class="chat-window" id="chat-window"></div>
+            <div class="typing-indicator" id="typing-indicator" style="display:none;">
+                Stranger is typing...
+            </div>
+            <div class="chat-controls">
+                <input type="text" id="msg-input" placeholder="Type your message..." autocomplete="off">
+                <button id="send-btn">Send</button>
+            </div>
+        </div>
+        <div class="chat-actions">
+            <button class="action-btn" id="next-btn">Next</button>
+            <button class="action-btn" id="end-btn">End Chat</button>
+            <button class="action-btn" id="report-btn">Report</button>
+        </div>
+    </div>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+        var socket = io();
+        var room = null;
+        var you = null;
+        var stranger = null;
+        var typingTimeout = null;
+
+        socket.on('matched', function(data) {
+            room = data.room;
+            you = data.you;
+            stranger = data.stranger;
+            document.getElementById('you-info').innerText = 
+                `You: ${you.username} | Age: ${you.age} | ${you.gender}`;
+            document.getElementById('stranger-info').innerText = 
+                `Stranger: Age: ${stranger.age} | ${stranger.gender}`;
+        });
+
+        function appendMessage(sender, msg) {
+            var win = document.getElementById('chat-window');
+            var bubble = document.createElement('div');
+            bubble.className = sender === 'You' ? 'bubble me' : 'bubble stranger';
+            bubble.innerText = msg;
+            win.appendChild(bubble);
+            win.scrollTop = win.scrollHeight;
+        }
+
+        socket.on('receive_message', function(data) {
+            appendMessage(data.sender, data.msg);
+            document.getElementById('typing-indicator').style.display = 'none';
+        });
+
+        document.getElementById('send-btn').onclick = function() {
+            sendMsg();
+        };
+        document.getElementById('msg-input').onkeydown = function(e) {
+            if (e.key === 'Enter') sendMsg();
+            socket.emit('typing', {room: room});
+        };
+
+        function sendMsg() {
+            var input = document.getElementById('msg-input');
+            var msg = input.value.trim();
+            if (!msg) return;
+            socket.emit('send_message', {room: room, msg: msg});
+            input.value = '';
+        }
+
+        socket.on('stranger_typing', function() {
+            var indicator = document.getElementById('typing-indicator');
+            indicator.style.display = 'block';
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => {
+                indicator.style.display = 'none';
+            }, 1200);
+        });
+
+        document.getElementById('next-btn').onclick = function() {
+            socket.emit('next_chat', {room: room});
+            window.location.href = "{{ url_for('connecting') }}";
+        };
+        document.getElementById('end-btn').onclick = function() {
+            socket.emit('end_chat', {room: room});
+            window.location.href = "{{ url_for('index') }}";
+        };
+        document.getElementById('report-btn').onclick = function() {
+            alert('Thank you for reporting. The conversation has ended.');
+            socket.emit('end_chat', {room: room});
+            window.location.href = "{{ url_for('index') }}";
+        };
+
+        socket.on('chat_ended', function() {
+            alert('Stranger disconnected.');
+            window.location.href = "{{ url_for('index') }}";
+        });
+
+        socket.on('go_to_connecting', function() {
+            window.location.href = "{{ url_for('connecting') }}";
+        });
+
+        // If page loads and no match yet, show info
+        window.onload = function() {
+            if (!room) {
+                document.getElementById('chat-info').innerText = 'Waiting for stranger...';
+            }
+        }
+    </script>
+</body>
+</html>
